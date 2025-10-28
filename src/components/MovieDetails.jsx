@@ -7,7 +7,7 @@ import {
   GoShare,
   GoDownload,
   GoPlay,
-  GoAlert ,
+  GoAlert,
 } from "react-icons/go";
 import "react-lazy-load-image-component/src/effects/blur.css";
 import { NavLink, useParams } from "react-router-dom";
@@ -250,29 +250,35 @@ export default function MovieDetails() {
     }
   };
 
-  const handleAddPlayList = (id) => {
-    const playlist = JSON.parse(localStorage.getItem("playlist")) || [];
-    if (playlist.includes(id)) {
-      toast("Movie already in favorite.", {
-        type: "warning",
-        action: {
-          label: "View",
-          onClick: () => navigate("/watchlist"),
-        },
-      });
-      return;
-    }
+const handleAddPlayList = (id) => {
+  const playlist = JSON.parse(localStorage.getItem("playlist")) || [];
+  const index = playlist.indexOf(id);
 
+  if (index !== -1) {
+    // Movie already exists → remove it
+    playlist.splice(index, 1);
+    localStorage.setItem("playlist", JSON.stringify(playlist));
+    toast.info(`${movie.title} removed from favorites.`, {
+      action: {
+        label: "View",
+        onClick: () => navigate("/watchlist"),
+      },
+    });
+    setHasMovie(false);
+  } else {
+    // Movie not in list → add it
     playlist.push(id);
     localStorage.setItem("playlist", JSON.stringify(playlist));
-    toast.success(`${movie.title} added to favorite!`, {
+    toast.success(`${movie.title} added to favorites!`, {
       action: {
         label: "View",
         onClick: () => navigate("/watchlist"),
       },
     });
     setHasMovie(true);
-  };
+  }
+};
+
 
   const convertMinutesToTime = (minutes) => {
     const hours = Math.floor(minutes / 60);
@@ -286,10 +292,10 @@ export default function MovieDetails() {
   if (error)
     return (
       <div className="flex items-center justify-center h-screen text-2xl text-red-500">
-       <span className="border rounded-md flex items-center px-3 py-1 gap-2">
-       <GoAlert />
-       {error}
-       </span>
+        <span className="border rounded-md flex items-center px-3 py-1 gap-2">
+          <GoAlert />
+          {error}
+        </span>
       </div>
     );
 
@@ -342,11 +348,10 @@ export default function MovieDetails() {
             <p className="text-sm lg:text-base ">
               <span className="px-1 border-black border border-opacity-10 bg-black bg-opacity-5 mr-1">
                 <Popover>
-                  <PopoverTrigger>
-                    {rating} 
-                  </PopoverTrigger>
-                  <PopoverContent>{movieRatings[rating]||"N/R"}</PopoverContent>
-            
+                  <PopoverTrigger>{rating}</PopoverTrigger>
+                  <PopoverContent>
+                    {movieRatings[rating] || "N/R"}
+                  </PopoverContent>
                 </Popover>
               </span>
               {movie.original_language.toUpperCase()} |{" "}
@@ -451,8 +456,8 @@ export default function MovieDetails() {
             <span
               style={{ background: textColor1, color: Bg }}
               className="py-2 px-5  rounded-r-full text-sm"
-            >
-              Score | {Math.round(movie.vote_average * 10)}%
+            >IMDb |{" "}
+              {movie.vote_average ? movie.vote_average.toFixed(1) : "N/A"}
             </span>
           </div>
           <div className="flex flex-wrap items-start gap-y-1 py-4 px-2  mt-2 rounded-lg backdrop-blur-lg bg-black bg-opacity-5">

@@ -1,34 +1,51 @@
-"use client";
 import React from "react";
-import Search from "./Search";
-import { GoHeart ,GoStack} from "react-icons/go";;
 import { NavLink } from "react-router-dom";
+import { GoHeart, GoGlobe  } from "react-icons/go";
+import Search from "./Search";
 import logo from "../assets/logoflix.svg";
 
 const Header = () => {
   return (
-    <div className="border-b  justify-normal lg:justify-between gap-4 fixed z-50 top-0 left-0 w-full bg-zinc-950/40 backdrop-blur-lg  px-5  py-1 flex items-center h-[50px]">
-      <NavLink to={`/`}>
-        <div>
-          <img className="h-8 py-1" src={logo} alt="Rflix" />
-        </div>
-      </NavLink>
+    <header className="fixed top-0 left-0 w-full z-50 backdrop-blur-md bg-black/40 border-b border-zinc-800">
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-10 h-[60px]">
+        
+        {/* Logo */}
+        <NavLink to="/" className="flex items-center gap-2 group">
+          <img
+            src={logo}
+            alt="Rflix"
+            className="h-8 transition-transform group-hover:scale-110"
+          />
+          <span className="hidden sm:block font-semibold text-white tracking-wide">
+            R<span className="text-blue-400">flix</span>
+          </span>
+        </NavLink>
 
-      <div className="flex items-center gap-4 justify-end w-full">
-      <NavLink to={`/discover`}>
-          <div className="hidden lg:block">
-            <GoStack size={20} />
-          </div>
-        </NavLink>
-        <Search size={20} />
-     
-        <NavLink to={`/watchlist`}>
-          <div className="text-white transition-colors px-5 py-1 border border-zinc-500 rounded-full hover:bg-gradient-to-r from-cyan-500 to-blue-500 hover:border-none ">
-            <GoHeart size={20} />
-          </div>
-        </NavLink>
+        {/* Right Section */}
+        <div className="flex items-center gap-3 sm:gap-5">
+          
+          {/* Discover Icon */}
+          <NavLink
+            to="/discover"
+            className="hidden sm:flex items-center justify-center text-zinc-300 hover:text-cyan-400 transition-colors"
+          >
+            <GoGlobe  size={20} />
+          </NavLink>
+
+          {/* Search Input */}
+          <Search />
+
+          {/* Watchlist Button */}
+          <NavLink
+            to="/watchlist"
+            className="flex items-center justify-center text-white border border-zinc-600 rounded-full px-4 py-1.5 text-sm font-medium hover:bg-gradient-to-r hover:from-cyan-500 hover:to-blue-600 hover:border-transparent transition-all duration-300"
+          >
+            <GoHeart size={18} className="mr-1" />
+            <span className="hidden sm:block">Watchlist</span>
+          </NavLink>
+        </div>
       </div>
-    </div>
+    </header>
   );
 };
 

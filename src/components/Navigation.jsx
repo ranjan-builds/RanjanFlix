@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { GoHome, GoHeart,GoStack  } from "react-icons/go";
+import { GoHome, GoHeart,GoGlobe   } from "react-icons/go";
 import { NavLink } from "react-router-dom";
 import Search from "./Search";
 
@@ -22,7 +22,7 @@ const Navigation = () => {
         </div>
         <NavLink to="/discover" className="inline h-full">
           <div className="flex items-center justify-center gap-1 flex-col lg:hover:bg-zinc-700/50 h-full cursor-pointer">
-            <GoStack size={25} />
+            <GoGlobe  size={25} />
             <span className="text-xs text-slate-400">Discover</span>
           </div>
         </NavLink>
