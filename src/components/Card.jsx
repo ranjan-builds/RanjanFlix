@@ -1,5 +1,5 @@
 import React from "react";
-import { GoXCircle } from "react-icons/go";
+import { GoXCircle, GoStar } from "react-icons/go";
 import { NavLink } from "react-router-dom";
 import { LazyLoadImage } from "react-lazy-load-image-component";
 import "react-lazy-load-image-component/src/effects/blur.css";
@@ -46,8 +46,8 @@ const Card = ({ movie, onRemoveFromWatchlist, cancel }) => {
           <h3 className="text-lg font-semibold truncate">{title}</h3>
           <div className="flex justify-between items-center text-sm text-gray-300 mt-1">
             <span>{year}</span>
-            <span className="bg-yellow-400 text-black px-2 py-0.5 rounded-full text-xs font-bold">
-              ⭐ {vote_average.toFixed(1)}
+            <span className="bg-yellow-400 text-black px-2 py-0.5 rounded-full text-xs font-bold flex items-center gap-1">
+              <GoStar /> {vote_average.toFixed(1)}
             </span>
           </div>
         </div>

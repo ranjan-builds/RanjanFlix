@@ -1,4 +1,3 @@
-"use client";
 import { useEffect, useState } from "react";
 import Card from "./Card";
 import {
@@ -34,10 +33,8 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "./ui/skeleton";
 import { getDominantColor } from "@/lib/Color";
 import { getTextColorForBackground } from "@/lib/TextColor";
 import MovieCategoryName from "./MovieCategoryName";
@@ -70,8 +67,7 @@ export default function MovieDetails() {
   const [error, setError] = useState(null);
   const [percentage, setPercentage] = useState(100);
   const apiKey = import.meta.env.VITE_API_KEY;
-  const searchSuffix = "site:filmyzilla.com.by";
-
+ 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [id]);
@@ -359,6 +355,20 @@ const handleAddPlayList = (id) => {
               {convertMinutesToTime(movie.runtime)}
             </p>
           </div>
+          
+          {/* Belongs to Collection Section */}
+          {movie.belongs_to_collection && (
+            <div className="flex items-center gap-2">
+              <span className="font-semibold">Part of:</span>
+              <NavLink 
+                to={`/collection/${movie.belongs_to_collection.id}`}
+                className="px-3 py-1 rounded-full bg-black bg-opacity-20 hover:bg-opacity-30 transition-colors"
+              >
+                {movie.belongs_to_collection.name}
+              </NavLink>
+            </div>
+          )}
+
           <div className="my-1 flex items-center gap-2">
             <div>
               <div

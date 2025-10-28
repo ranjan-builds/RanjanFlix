@@ -8,12 +8,12 @@ import Person from "./components/Person";
 import MoviesPage from "./components/AllMoviesPage";
 import NotFoundPage from "./components/NotFoundPage";
 import DiscoverMovies from "./components/DiscoverMovies";
-
-
-
+import CollectionPage from "./components/CollectionPage";
+import ScrollToTop from "./components/ScrollToTop";
 function App() {
   return (
     <Router>
+      <ScrollToTop /> {/* 👈 ensures scroll resets every route change */}
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
@@ -22,6 +22,7 @@ function App() {
           <Route path="/movies/:url" element={<MoviesPage />} />
           <Route path="/watchlist" element={<Playlist />} />
           <Route path="/discover" element={<DiscoverMovies />} />
+          <Route path="/collection/:id" element={<CollectionPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
