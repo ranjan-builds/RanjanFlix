@@ -99,17 +99,39 @@ const DiscoverMovies = () => {
     }
   };
 
-  const fetchRandomMovie = useCallback(async () => {
+  const fetchSmartSurprise = useCallback(async () => {
     setIsLoading(true);
     const apiKey = import.meta.env.VITE_API_KEY;
-    const randomPage = Math.floor(Math.random() * 100) + 1;
+
+    const moods = [
+      { genre: "28", name: "Action Blast 💥" },
+      { genre: "18", name: "Emotional Ride 😢" },
+      { genre: "27", name: "Horror Night 👻" },
+      { genre: "878", name: "Sci-Fi Mind 🤯" },
+      { genre: "35", name: "Fun & Comedy 😂" },
+    ];
+
+    const randomMood = moods[Math.floor(Math.random() * moods.length)];
+    const randomPage = Math.floor(Math.random() * 50) + 1;
+
     const res = await fetch(
-      `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&page=${randomPage}&sort_by=popularity.desc`
+      `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_genres=${randomMood.genre}&page=${randomPage}&vote_average.gte=6`
     );
+
     const data = await res.json();
-    const movie =
-      data.results?.[Math.floor(Math.random() * data.results.length)];
-    setRandomMovie(movie);
+
+    const randomIndex = Math.floor(Math.random() * data.results.length);
+    const mainMovie = data.results[randomIndex];
+
+    // get more suggestions
+    const suggestions = data.results.slice(0, 6);
+
+    setRandomMovie({
+      main: mainMovie,
+      list: suggestions,
+      mood: randomMood.name,
+    });
+
     setShowRandomMovie(true);
     setIsLoading(false);
   }, []);
@@ -161,30 +183,51 @@ const DiscoverMovies = () => {
 
         {/* Random Movie */}
         {showRandomMovie && randomMovie && (
-          <div className="mb-10 bg-white/[0.03] border border-white/10 backdrop-blur-md p-6 rounded-2xl shadow-xl transition-all hover:border-white/20">
-            <div className="flex flex-col md:flex-row gap-6">
-              <Card movie={randomMovie} size="lg" />
+          <div className="mb-12 bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-2xl p-6 shadow-2xl">
+            {/* Mood */}
+            <p className="text-sm text-purple-400 mb-2">
+              🎯 Mood: {randomMovie.mood}
+            </p>
+
+            {/* Main Movie */}
+            <div className="flex flex-col md:flex-row gap-6 mb-6">
+              <Card movie={randomMovie.main} size="lg" />
+
               <div>
-                <h2 className="text-2xl font-semibold mb-2">
-                  {randomMovie.title}
+                <h2 className="text-3xl font-bold mb-2">
+                  {randomMovie.main.title}
                 </h2>
-                <p className="text-gray-400 mb-4 line-clamp-3">
-                  {randomMovie.overview}
+
+                <p className="text-gray-400 mb-4 line-clamp-4">
+                  {randomMovie.main.overview}
                 </p>
+
                 <div className="flex gap-4 text-sm text-gray-500 mb-4">
-                  <span>⭐ {randomMovie.vote_average.toFixed(1)}</span>
+                  <span>⭐ {randomMovie.main.vote_average.toFixed(1)}</span>
                   <span>
-                    📅 {new Date(randomMovie.release_date).getFullYear()}
+                    📅 {new Date(randomMovie.main.release_date).getFullYear()}
                   </span>
-                  <span>👥 {randomMovie.vote_count}</span>
                 </div>
+
                 <Button
-                  variant="outline"
-                  onClick={() => setShowRandomMovie(false)}
-                  className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                  onClick={fetchSmartSurprise}
+                  className="bg-purple-600 hover:bg-purple-700"
                 >
-                  Close
+                  🔄 Try Another Surprise
                 </Button>
+              </div>
+            </div>
+
+            {/* More Like This */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3 text-gray-300">
+                🎬 More Like This
+              </h3>
+
+              <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                {randomMovie.list.map((m, i) => (
+                  <Card key={i} movie={m} />
+                ))}
               </div>
             </div>
           </div>
@@ -193,7 +236,7 @@ const DiscoverMovies = () => {
         {/* Action Buttons */}
         <div className="flex flex-wrap justify-center gap-4 mb-10">
           <Button
-            onClick={fetchRandomMovie}
+            onClick={fetchSmartSurprise}
             disabled={isLoading}
             className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-full px-6 py-3 transition-transform hover:scale-105"
           >

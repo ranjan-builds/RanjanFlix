@@ -4,7 +4,7 @@ import { FiExternalLink } from "react-icons/fi";
 const ExtraDetails = ({ movie, Bg, textColor1, movieKeywords }) => {
   function redirectServer1() {
     const formattedTitle = movie.title.replace(/ /g, "+");
-    const url = `https://www.jalshamoviez.er.in/mobile/search?find=${formattedTitle}&per_page=1`;
+    const url = `https://bollyflix.frl/search/${formattedTitle}`;
     window.open(url, "_blank");
   }
 
@@ -96,7 +96,7 @@ const ExtraDetails = ({ movie, Bg, textColor1, movieKeywords }) => {
             onClick={redirectServer1}
             className="bg-black bg-opacity-10 px-2 py-1 rounded-l-md text-xs flex items-center gap-2"
           >
-            Jalshamoviez <FiExternalLink />
+            Bollyflix <FiExternalLink />
           </button>
           <button
             onClick={redirectServer2}

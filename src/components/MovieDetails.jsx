@@ -205,7 +205,7 @@ export default function MovieDetails() {
   const fetchWithErrorHandling = async (url) => {
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`HTTP error: ${response.status}`);
+      throw new Error(`Bhai Kuch Nahi Hai esme: ${response.status}`);
     }
     return await response.json();
   };
@@ -214,7 +214,7 @@ export default function MovieDetails() {
     if (movie?.title) {
       setDialogOpen(false);
       window.open(
-        `https://bollyflix.meme/search/${movie.title.replace(/ /g, "+")}`,
+        `https://bollyflix.frl/search/${movie.title.replace(/ /g, "+")}`,
         "_blank"
       );
     }

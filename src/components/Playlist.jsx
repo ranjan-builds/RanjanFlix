@@ -92,7 +92,7 @@ const Playlist = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950">
+      <div className="min-h-screen flex items-center justify-center bg-black">
         <div className="text-center">
           <Loader color="purple" loading={true} size={32} />
           <p className="text-gray-400 mt-4 text-lg">
@@ -104,15 +104,15 @@ const Playlist = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white p-4 lg:p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-black">
+      <div className="container mx-auto px-4 py-12">
         {/* Header */}
-        <div className="text-center mb-10 mt-6">
+        <div className="text-center mb-12">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="p-3 bg-purple-700/20 rounded-xl border border-purple-700/30">
+            <div className="p-3 bg-purple-950 rounded-xl border border-purple-800">
               <Play className="w-7 h-7 text-purple-400" />
             </div>
-            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight">
+            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-white">
               My Watchlist
             </h1>
           </div>
@@ -124,25 +124,27 @@ const Playlist = () => {
         {movies.length > 0 ? (
           <>
             {/* Stats + Controls */}
-            <div className="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 p-6 mb-10 shadow-sm">
+            <div className="bg-gray-900 rounded-xl border border-gray-800 p-6 mb-10 shadow-sm">
               <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                 <div className="flex flex-wrap gap-6">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-purple-700/20 rounded-lg">
-                      <Film className="w-5 h-5 text-purple-300" />
+                    <div className="p-2 bg-purple-950 rounded-lg">
+                      <Film className="w-5 h-5 text-purple-400" />
                     </div>
                     <div>
-                      <p className="text-xl font-semibold">{movies.length}</p>
+                      <p className="text-xl font-semibold text-white">
+                        {movies.length}
+                      </p>
                       <p className="text-gray-400 text-sm">Movies</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-700/20 rounded-lg">
-                      <Clock className="w-5 h-5 text-blue-300" />
+                    <div className="p-2 bg-blue-950 rounded-lg">
+                      <Clock className="w-5 h-5 text-blue-400" />
                     </div>
                     <div>
-                      <p className="text-xl font-semibold">
+                      <p className="text-xl font-semibold text-white">
                         {hours}h {minutes}m
                       </p>
                       <p className="text-gray-400 text-sm">Total Duration</p>
@@ -154,7 +156,7 @@ const Playlist = () => {
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="bg-slate-800 border border-slate-700 text-gray-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 transition"
+                    className="bg-gray-800 border border-gray-700 text-gray-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 transition"
                   >
                     <option value="added">Recently Added</option>
                     <option value="title">Title (A–Z)</option>
@@ -165,7 +167,7 @@ const Playlist = () => {
                   <Button
                     onClick={clearAllMovies}
                     variant="outline"
-                    className="border-red-500 text-red-400 hover:bg-red-500/10 transition"
+                    className="border-red-800 text-red-400 hover:bg-red-950/50 transition"
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
                     Clear All
@@ -194,8 +196,8 @@ const Playlist = () => {
             </div>
 
             {/* Footer Actions */}
-            <div className="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 p-6 text-center">
-              <h3 className="text-xl font-semibold mb-2">
+            <div className="bg-gray-900 rounded-xl border border-gray-800 p-6 text-center">
+              <h3 className="text-xl font-semibold text-white mb-2">
                 Ready to watch something?
               </h3>
               <p className="text-gray-400 mb-4">
@@ -211,7 +213,7 @@ const Playlist = () => {
                 </Button>
                 <Button
                   variant="outline"
-                  className="border-gray-700 text-gray-300 hover:bg-slate-800"
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800"
                   onClick={() => navigate("/")}
                 >
                   <Plus className="w-4 h-4 mr-2" />
@@ -229,10 +231,10 @@ const Playlist = () => {
           /* Empty State */
           <div className="text-center py-24">
             <div className="max-w-md mx-auto">
-              <div className="w-20 h-20 mx-auto mb-6 bg-slate-800 rounded-2xl flex items-center justify-center border border-slate-700">
+              <div className="w-20 h-20 mx-auto mb-6 bg-gray-900 rounded-2xl flex items-center justify-center border border-gray-800">
                 <Play className="w-8 h-8 text-gray-500" />
               </div>
-              <h2 className="text-2xl font-semibold mb-3">
+              <h2 className="text-2xl font-semibold text-white mb-3">
                 Your Watchlist is Empty
               </h2>
               <p className="text-gray-400 mb-8">
@@ -248,7 +250,7 @@ const Playlist = () => {
                 </Button>
                 <Button
                   variant="outline"
-                  className="border-gray-700 text-gray-300 hover:bg-slate-800"
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800"
                   onClick={() => navigate("/")}
                 >
                   Browse Home

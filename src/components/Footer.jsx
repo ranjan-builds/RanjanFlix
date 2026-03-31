@@ -22,7 +22,7 @@ const Footer = () => {
               <span className="text-gray-400 text-sm">Developer</span>
             </div>
             <p className="text-gray-400 text-sm text-center md:text-left">
-              Built with <FaHeart className="inline text-red-400 mx-1" /> by Ranjan Kashyap
+             Made for movie lovers by Ranjan Kashyap
             </p>
             <p className="text-gray-500 text-xs">
               © {currentYear} All rights reserved
