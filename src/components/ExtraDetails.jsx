@@ -1,136 +1,148 @@
 import React from "react";
-import { FiExternalLink } from "react-icons/fi";
+import { 
+  ExternalLink, 
+  Wallet, 
+  TrendingUp, 
+  Activity, 
+  Globe, 
+  Flag, 
+  Tag, 
+  Download 
+} from "lucide-react";
+import { motion } from "framer-motion";
 
 const ExtraDetails = ({ movie, Bg, textColor1, movieKeywords }) => {
-  function redirectServer1() {
+  
+  const handleRedirect = (server) => {
     const formattedTitle = movie.title.replace(/ /g, "+");
-    const url = `https://bollyflix.frl/search/${formattedTitle}`;
-    window.open(url, "_blank");
-  }
+    let url = "";
 
-  function redirectServer2() {
-    const formattedTitle = movie.title.replace(/ /g, "+");
-    const url = `https://www.filmyfly.durban/site-1.html?to-search=${formattedTitle}`;
+    switch(server) {
+      case 1: url = `https://bollyflix.frl/search/${formattedTitle}`; break;
+      case 2: url = `https://www.filmyfly.durban/site-1.html?to-search=${formattedTitle}`; break;
+      case 3: 
+        const searchQuery = `${movie.title} site:filmyzilla.com.by`;
+        url = `https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`;
+        break;
+      default: break;
+    }
     window.open(url, "_blank");
-  }
-  function redirectServer3() {
-    let searchSuffix = "site:filmyzilla.com.by";
-    const searchQuery = `${movie.title} ${searchSuffix}`;
-    const url = `https://www.google.com/search?q=${encodeURIComponent(
-      searchQuery
-    )}`;
-    window.open(url, "_blank");
+  };
 
-  }
-
-  // function redirectServer3() {
-  //   const formattedTitle = movie.title.replace(/ /g, "+");
-  //   const url = `https://bollyflix.meme/search/${formattedTitle}`;
-  //   window.open(url, "_blank");
-  // }
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD", // TMDB data is usually in USD; changed to US for global context
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
 
   return (
-    <div
-      style={{ background: `${Bg}`, color: `${textColor1}` }}
-      className="p-5 flex items-start gap-3 flex-col mt-10"
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      style={{ background: `linear-gradient(to bottom, transparent, ${Bg})`, color: textColor1 }}
+      className="p-6 md:p-12 mt-12 rounded-3xl border-t border-white/5"
     >
-      <div className="flex flex-col">
-        <h1 className="text-3xl lg:text-5xl font-bold text">
-          {movie.title === movie.original_title
-            ? movie.title
-            : `${movie.title} (${movie.original_title})`}
-        </h1>
-
-        <p className="text-xs">{movie.release_date}</p>
-      </div>
-      <div>
-        <p className="font-semibold text-md">Production Country</p>
-        {movie.production_countries.map((i) => (
-          <p className="text-xs" key={i.iso_3166_1}>
-            {i.name}
-          </p>
-        ))}
-      </div>
-
-      <div>
-        <p className="font-semibold text-md">Origin Country</p>
-        <p className="text-xs">{movie.origin_country}</p>
-      </div>
-
-      <div>
-        <p className="font-semibold text-md">Status</p>
-        <p className="text-xs">{movie.status}</p>
-      </div>
-
-      {movie.budget ? (
-        <div>
-          <p className="font-semibold text-md">Budget</p>
-          <p className="text-xs">
-            {new Intl.NumberFormat("en-IN", {
-              style: "currency",
-              currency: "INR",
-            }).format(movie.budget)}
-          </p>
-        </div>
-      ) : (
-        ""
-      )}
-
-      {movie.revenue ? (
-        <div>
-          <p className="font-semibold text-md">Revenue</p>
-          <p className="text-xs">
-            {new Intl.NumberFormat("en-IN", {
-              style: "currency",
-              currency: "INR",
-            }).format(movie.revenue)}
-          </p>
-        </div>
-      ) : (
-        ""
-      )}
-      <div>
-        <p className="font-semibold text-md">Download</p>
-        <div className="flex  mt-2">
-          <button
-            onClick={redirectServer1}
-            className="bg-black bg-opacity-10 px-2 py-1 rounded-l-md text-xs flex items-center gap-2"
-          >
-            Bollyflix <FiExternalLink />
-          </button>
-          <button
-            onClick={redirectServer2}
-            className="bg-black bg-opacity-10 px-2 py-1  text-xs flex items-center gap-2"
-          >
-            Filmyfly <FiExternalLink />
-          </button>
-          <button
-            onClick={redirectServer3}
-            className="bg-black bg-opacity-10 px-2 py-1 rounded-r-md text-xs flex items-center gap-2"
-          >
-            FilmyZilla <FiExternalLink />
-          </button>
-        </div>
-      </div>
-      {movieKeywords.length > 0 ? (
-        <div className="flex flex-col">
-          <p className="font-semibold text-md mb-2">Keywords</p>
-          <div className="flex items-start gap-1 flex-wrap">
-            {movieKeywords.map((item) => (
-              <p
-                className=" bg-black bg-opacity-10 px-2 py-1 text-xs rounded-sm"
-                key={item.id}
-              >
-                {item.name}
-              </p>
-            ))}
+      <div className="max-w-7xl mx-auto space-y-12">
+        
+        {/* Header Section */}
+        <div className="border-b border-current/10 pb-8">
+          <h2 className="text-4xl lg:text-6xl font-black tracking-tighter mb-2">
+            {movie.title === movie.original_title
+              ? movie.title
+              : `${movie.title} (${movie.original_title})`}
+          </h2>
+          <div className="flex items-center gap-4 opacity-60 font-medium">
+            <span className="flex items-center gap-2"><Activity size={16} /> {movie.status}</span>
+            <span>•</span>
+            <span>{movie.release_date}</span>
           </div>
         </div>
-      ) : (
-        ""
-      )}
-    </div>
+
+        {/* Info Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          
+          <InfoBlock 
+            icon={<Wallet size={20} />} 
+            label="Production Budget" 
+            value={movie.budget ? formatCurrency(movie.budget) : "Undisclosed"} 
+          />
+          
+          <InfoBlock 
+            icon={<TrendingUp size={20} />} 
+            label="Box Office Revenue" 
+            value={movie.revenue ? formatCurrency(movie.revenue) : "In Progress"} 
+          />
+
+          <InfoBlock 
+            icon={<Globe size={20} />} 
+            label="Origin Country" 
+            value={movie.origin_country?.[0] || "Global"} 
+          />
+
+          <InfoBlock 
+            icon={<Flag size={20} />} 
+            label="Production Houses" 
+            value={movie.production_countries.map(c => c.name).join(", ")} 
+          />
+        </div>
+
+        {/* Download Hub */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest opacity-50">
+            <Download size={16} /> External Servers
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <ServerButton name="Bollyflix" onClick={() => handleRedirect(1)} />
+            <ServerButton name="Filmyfly" onClick={() => handleRedirect(2)} />
+            <ServerButton name="FilmyZilla" onClick={() => handleRedirect(3)} />
+          </div>
+        </div>
+
+        {/* Keywords Cloud */}
+        {movieKeywords.length > 0 && (
+          <div className="space-y-4 pt-6 border-t border-current/10">
+            <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest opacity-50">
+              <Tag size={16} /> Story Keywords
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {movieKeywords.map((item) => (
+                <span
+                  key={item.id}
+                  className="px-4 py-1.5 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/20 border border-white/5 transition-colors cursor-default"
+                >
+                  {item.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </motion.div>
   );
 };
+
+// --- Helper Components for Cleanliness ---
+
+const InfoBlock = ({ icon, label, value }) => (
+  <div className="space-y-2 group">
+    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] opacity-40 group-hover:opacity-60 transition-opacity">
+      {icon} {label}
+    </div>
+    <p className="text-xl font-bold leading-tight">{value}</p>
+  </div>
+);
+
+const ServerButton = ({ name, onClick }) => (
+  <button
+    onClick={onClick}
+    className="flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/10 hover:bg-white text-inherit hover:text-black font-bold transition-all border border-white/5 shadow-lg active:scale-95"
+  >
+    {name}
+    <ExternalLink size={16} />
+  </button>
+);
 
 export default ExtraDetails;

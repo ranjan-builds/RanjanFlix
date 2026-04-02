@@ -1,354 +1,306 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Filter, 
+  SlidersHorizontal, 
+  Calendar, 
+  Clock, 
+  Star, 
+  X, 
+  RotateCcw,
+  Shuffle,
+  Loader2,
+  Languages,
+  Sparkles,
+  Play
+} from "lucide-react";
+
 import Card from "./Card";
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Shuffle, Filter, Sparkles, Loader2 } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select, SelectTrigger, SelectContent, SelectItem, SelectValue,
+} from "@/components/ui/select";
+import {
+  Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger,
+} from "@/components/ui/sheet";
+
+// --- Persistence Helpers (Outside Component) ---
+const getSeenMovies = () => JSON.parse(localStorage.getItem('seen_movies') || '[]');
+const saveToSeen = (id) => {
+  const seen = getSeenMovies();
+  if (!seen.includes(id)) {
+    localStorage.setItem('seen_movies', JSON.stringify([...seen, id].slice(-100)));
+  }
+};
+
+// --- Constants ---
+const GENRES = [
+  { id: "all", name: "All Genres" },
+  { id: "28", name: "Action" }, { id: "12", name: "Adventure" },
+  { id: "16", name: "Animation" }, { id: "35", name: "Comedy" },
+  { id: "18", name: "Drama" }, { id: "27", name: "Horror" },
+  { id: "878", name: "Sci-Fi" }, { id: "53", name: "Thriller" },
+];
+
+const LANGUAGES = [
+  { code: "all", name: "All Languages" },
+  { code: "en", name: "English" }, { code: "hi", name: "Hindi" },
+  { code: "ja", name: "Japanese" }, { code: "ko", name: "Korean" },
+];
 
 const DiscoverMovies = () => {
   const [movies, setMovies] = useState([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [randomMovie, setRandomMovie] = useState(null);
-  const [showRandomMovie, setShowRandomMovie] = useState(false);
+  const [showRecommendation, setShowRecommendation] = useState(false);
+  
   const [filters, setFilters] = useState({
     sort_by: "popularity.desc",
-    with_original_language: "all",
     with_genres: "all",
-    "vote_average.gte": "0",
+    with_original_language: "all",
+    "vote_average.gte": 0,
+    "vote_count.gte": 150,
+    "with_runtime.gte": 0,
+    primary_release_year: "all",
   });
 
   const observerRef = useRef(null);
+  const API_KEY = import.meta.env.VITE_API_KEY;
 
-  const genres = [
-    { id: "all", name: "All Genres" },
-    { id: "28", name: "Action" },
-    { id: "12", name: "Adventure" },
-    { id: "16", name: "Animation" },
-    { id: "35", name: "Comedy" },
-    { id: "99", name: "Documentary" },
-    { id: "18", name: "Drama" },
-    { id: "27", name: "Horror" },
-    { id: "9648", name: "Mystery" },
-    { id: "10749", name: "Romance" },
-    { id: "878", name: "Sci-Fi" },
-    { id: "53", name: "Thriller" },
-  ];
-
-  const languages = [
-    { code: "all", name: "All Languages" },
-    { code: "en", name: "English" },
-    { code: "hi", name: "Hindi" },
-    { code: "ja", name: "Japanese" },
-    { code: "ko", name: "Korean" },
-    { code: "te", name: "Telugu" },
-    { code: "ta", name: "Tamil" },
-  ];
-
-  const sortOptions = [
-    { value: "popularity.desc", label: "Most Popular" },
-    { value: "release_date.desc", label: "Newest Releases" },
-    { value: "vote_average.desc", label: "Highest Rated" },
-    { value: "revenue.desc", label: "Highest Revenue" },
-    { value: "title.asc", label: "Title (A-Z)" },
-  ];
-
-  const ratingOptions = [
-    { value: "0", label: "Any Rating" },
-    { value: "7", label: "⭐ 7.0+" },
-    { value: "8", label: "⭐ 8.0+" },
-    { value: "9", label: "⭐ 9.0+" },
-  ];
-
-  const fetchMovies = async (pageToFetch, reset = false) => {
-    if (isLoading) return;
+  // --- 1. Smart Recommendation Engine ---
+  const fetchRecommendation = useCallback(async () => {
     setIsLoading(true);
-
-    const apiKey = import.meta.env.VITE_API_KEY;
-    const baseUrl = "https://api.themoviedb.org/3/discover/movie";
-
-    const cleanFilters = Object.fromEntries(
-      Object.entries(filters).filter(([_, v]) => v !== "all" && v !== "0")
-    );
-
-    const query = new URLSearchParams({
-      api_key: apiKey,
-      page: pageToFetch,
-      ...cleanFilters,
-    }).toString();
+    const seenIds = getSeenMovies();
+    const moods = [
+      { id: "28", name: "Adrenaline Rush 🧨", color: "from-red-600" },
+      { id: "878", name: "Future Shock 🤖", color: "from-purple-600" },
+      { id: "16", name: "Whimsical Worlds ✨", color: "from-blue-400" },
+      { id: "27", name: "Nightmare Fuel 👻", color: "from-zinc-800" },
+      { id: "35", name: "Pure Comedy 😂", color: "from-yellow-500" }
+    ];
+    const mood = moods[Math.floor(Math.random() * moods.length)];
+    const randomPage = Math.floor(Math.random() * 8) + 1;
 
     try {
-      const res = await fetch(`${baseUrl}?${query}`);
+      const url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}` +
+                  `&with_genres=${mood.id}&vote_count.gte=1000&vote_average.gte=7.2` +
+                  `&page=${randomPage}&sort_by=popularity.desc`;
+      
+      const res = await fetch(url);
       const data = await res.json();
-      reset
-        ? setMovies(data.results)
-        : setMovies((prev) => [...prev, ...data.results]);
+      const fresh = data.results.filter(m => !seenIds.includes(m.id));
+      const pick = fresh.length > 0 ? fresh[0] : data.results[0];
+
+      saveToSeen(pick.id);
+      setRandomMovie({ ...pick, moodName: mood.name, moodColor: mood.color });
+      setShowRecommendation(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [API_KEY]);
+
+  // --- 2. Standard Discovery Fetching ---
+  const fetchMovies = useCallback(async (pageToFetch, reset = false) => {
+    setIsLoading(true);
+    const params = new URLSearchParams({
+      api_key: API_KEY,
+      page: pageToFetch,
+      sort_by: filters.sort_by,
+      "vote_count.gte": filters["vote_count.gte"],
+      "vote_average.gte": filters["vote_average.gte"],
+      "with_runtime.gte": filters["with_runtime.gte"],
+    });
+
+    if (filters.with_genres !== "all") params.append("with_genres", filters.with_genres);
+    if (filters.with_original_language !== "all") params.append("with_original_language", filters.with_original_language);
+    if (filters.primary_release_year !== "all") params.append("primary_release_year", filters.primary_release_year);
+
+    try {
+      const res = await fetch(`https://api.themoviedb.org/3/discover/movie?${params}`);
+      const data = await res.json();
+      setMovies(prev => reset ? data.results : [...prev, ...data.results]);
       setHasMore(pageToFetch < data.total_pages);
     } catch (e) {
       console.error(e);
     } finally {
       setIsLoading(false);
-      setIsInitialLoad(false);
     }
-  };
-
-  const fetchSmartSurprise = useCallback(async () => {
-    setIsLoading(true);
-    const apiKey = import.meta.env.VITE_API_KEY;
-
-    const moods = [
-      { genre: "28", name: "Action Blast 💥" },
-      { genre: "18", name: "Emotional Ride 😢" },
-      { genre: "27", name: "Horror Night 👻" },
-      { genre: "878", name: "Sci-Fi Mind 🤯" },
-      { genre: "35", name: "Fun & Comedy 😂" },
-    ];
-
-    const randomMood = moods[Math.floor(Math.random() * moods.length)];
-    const randomPage = Math.floor(Math.random() * 50) + 1;
-
-    const res = await fetch(
-      `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&with_genres=${randomMood.genre}&page=${randomPage}&vote_average.gte=6`
-    );
-
-    const data = await res.json();
-
-    const randomIndex = Math.floor(Math.random() * data.results.length);
-    const mainMovie = data.results[randomIndex];
-
-    // get more suggestions
-    const suggestions = data.results.slice(0, 6);
-
-    setRandomMovie({
-      main: mainMovie,
-      list: suggestions,
-      mood: randomMood.name,
-    });
-
-    setShowRandomMovie(true);
-    setIsLoading(false);
-  }, []);
+  }, [filters, API_KEY]);
 
   useEffect(() => {
+    setPage(1);
     fetchMovies(1, true);
-  }, [filters]);
+  }, [filters, fetchMovies]);
 
+  // --- 3. Intersection Observer ---
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting && hasMore && !isLoading) {
-        const next = page + 1;
-        setPage(next);
-        fetchMovies(next);
+        setPage(p => {
+          const next = p + 1;
+          fetchMovies(next);
+          return next;
+        });
       }
-    });
+    }, { threshold: 0.1 });
     if (observerRef.current) observer.observe(observerRef.current);
     return () => observer.disconnect();
-  }, [hasMore, isLoading, page]);
+  }, [hasMore, isLoading, fetchMovies]);
 
-  const clearFilters = () => {
-    setFilters({
-      sort_by: "popularity.desc",
-      with_original_language: "all",
-      with_genres: "all",
-      "vote_average.gte": "0",
-    });
-  };
-
-  const hasActiveFilters =
-    filters.with_original_language !== "all" ||
-    filters.with_genres !== "all" ||
-    filters["vote_average.gte"] !== "0";
+  // --- Helpers ---
+  const updateFilter = (key, value) => setFilters(prev => ({ ...prev, [key]: value }));
+  const activeFilterCount = useMemo(() => 
+    Object.entries(filters).filter(([k, v]) => !['sort_by', 'vote_count.gte'].includes(k) && v !== "all" && v !== 0).length
+  , [filters]);
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-white px-4 py-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-[#050505] text-white selection:bg-purple-500/40">
+      <div className="max-w-[1600px] mx-auto px-6 py-12">
+        
         {/* Header */}
-        <div className="text-center mb-10">
-          <h1 className="text-5xl font-bold tracking-tight mb-3">
-            <span className="bg-gradient-to-r from-white via-gray-300 to-gray-500 bg-clip-text text-transparent">
-              Discover Movies
-            </span>
-          </h1>
-          <p className="text-gray-400 text-lg">
-            Filter, explore, and find your next favorite film.
-          </p>
+        <header className="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-12 gap-8">
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+            <Badge variant="outline" className="mb-4 border-purple-500/30 text-purple-400 px-4 py-1 rounded-full bg-purple-500/5">
+              <Sparkles className="w-3 h-3 mr-2" /> AI Discovery Engine v2.6
+            </Badge>
+            <h1 className="text-6xl font-black tracking-tighter bg-gradient-to-b from-white to-zinc-500 bg-clip-text text-transparent">
+              EXPLORE.
+            </h1>
+          </motion.div>
+
+          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+            <Button 
+              onClick={fetchRecommendation} 
+              className="rounded-full h-12 px-8 bg-purple-600 hover:bg-purple-500 text-white font-bold shadow-[0_0_25px_rgba(168,85,247,0.3)] transition-transform active:scale-95"
+            >
+              <Shuffle className="w-4 h-4 mr-2" /> Surprise Me
+            </Button>
+
+            <Select value={filters.sort_by} onValueChange={(v) => updateFilter("sort_by", v)}>
+              <SelectTrigger className="w-[180px] bg-zinc-900 border-zinc-800 rounded-full h-12">
+                <SlidersHorizontal className="w-4 h-4 mr-2 text-zinc-500" />
+                <SelectValue placeholder="Sort" />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                <SelectItem value="popularity.desc">Most Popular</SelectItem>
+                <SelectItem value="vote_average.desc">Top Rated</SelectItem>
+                <SelectItem value="primary_release_date.desc">Newest</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" className="rounded-full h-12 border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800">
+                  <Filter className="w-4 h-4 mr-2" /> Filters
+                  {activeFilterCount > 0 && <Badge className="ml-2 bg-purple-600 h-5 w-5 p-0 flex items-center justify-center rounded-full">{activeFilterCount}</Badge>}
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="bg-zinc-950 border-zinc-800 text-white overflow-y-auto">
+                <SheetHeader className="mb-8">
+                  <SheetTitle className="text-2xl font-bold">Advanced Search</SheetTitle>
+                  <SheetDescription className="text-zinc-500">Fine-tune your results.</SheetDescription>
+                </SheetHeader>
+                
+                {/* Drawer Content */}
+                <div className="space-y-8">
+                  <div className="space-y-4">
+                    <label className="text-[10px] uppercase tracking-[0.2em] font-bold text-zinc-500">Genres</label>
+                    <div className="flex flex-wrap gap-2">
+                      {GENRES.map(g => (
+                        <button key={g.id} onClick={() => updateFilter("with_genres", g.id)}
+                          className={`px-4 py-2 rounded-xl text-xs transition-all border ${filters.with_genres === g.id ? "bg-white text-black border-white" : "bg-zinc-900 border-zinc-800 text-zinc-400"}`}>
+                          {g.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="flex justify-between"><label className="text-[10px] uppercase font-bold text-zinc-500">Min Rating</label><span className="text-purple-400 font-mono">⭐ {filters["vote_average.gte"]}</span></div>
+                      <Slider value={[filters["vote_average.gte"]]} max={10} step={0.5} onValueChange={([v]) => updateFilter("vote_average.gte", v)} />
+                    </div>
+                    <div className="space-y-4">
+                      <div className="flex justify-between"><label className="text-[10px] uppercase font-bold text-zinc-500">Min Runtime</label><span className="text-purple-400 font-mono">{filters["with_runtime.gte"]}m</span></div>
+                      <Slider value={[filters["with_runtime.gte"]]} max={240} step={15} onValueChange={([v]) => updateFilter("with_runtime.gte", v)} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    <Select value={filters.primary_release_year} onValueChange={(v) => updateFilter("primary_release_year", v)}>
+                      <SelectTrigger className="bg-zinc-900 border-zinc-800"><SelectValue placeholder="Year" /></SelectTrigger>
+                      <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                        <SelectItem value="all">All Time</SelectItem>
+                        {["2026", "2025", "2024", "2023", "2020s", "2010s"].map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Button variant="ghost" className="w-full text-zinc-500 hover:text-red-400" onClick={() => setFilters({sort_by:"popularity.desc",with_genres:"all",with_original_language:"all","vote_average.gte":0,"vote_count.gte":150,"with_runtime.gte":0,primary_release_year:"all"})}>
+                    <RotateCcw className="w-4 h-4 mr-2" /> Reset Everything
+                  </Button>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+        </header>
+
+        {/* Recommendation Hero */}
+        <AnimatePresence>
+          {showRecommendation && randomMovie && (
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative mb-20 group">
+              <div className={`absolute -inset-1 bg-gradient-to-r ${randomMovie.moodColor} to-transparent rounded-[2.5rem] blur opacity-20 group-hover:opacity-30 transition duration-1000`}></div>
+              <div className="relative flex flex-col md:flex-row bg-zinc-900/60 border border-white/5 rounded-[2.5rem] overflow-hidden backdrop-blur-3xl shadow-2xl">
+                <Button variant="ghost" size="icon" className="absolute right-6 top-6 z-10 bg-black/50 hover:bg-black/80 rounded-full" onClick={() => setShowRecommendation(false)}><X className="w-5 h-5"/></Button>
+                <div className="w-full md:w-[400px] aspect-[2/3] shrink-0">
+                  <img src={`https://image.tmdb.org/t/p/w780${randomMovie.poster_path}`} alt="Rec" className="h-full w-full object-cover" />
+                </div>
+                <div className="p-10 lg:p-16 flex flex-col justify-center flex-1">
+                  <Badge className={`w-fit mb-6 bg-gradient-to-r ${randomMovie.moodColor} text-white border-none px-4 py-1.5`}>MOOD: {randomMovie.moodName}</Badge>
+                  <h2 className="text-4xl lg:text-7xl font-black mb-6 leading-none">{randomMovie.title}</h2>
+                  <div className="flex gap-8 mb-8 text-zinc-400 font-medium">
+                    <span className="flex items-center text-yellow-500"><Star className="w-5 h-5 mr-2 fill-yellow-500" /> {randomMovie.vote_average.toFixed(1)}</span>
+                    <span className="flex items-center"><Calendar className="w-5 h-5 mr-2" /> {new Date(randomMovie.release_date).getFullYear()}</span>
+                    <span className="flex items-center"><Clock className="w-5 h-5 mr-2" /> {randomMovie.runtime || "120"}m</span>
+                  </div>
+                  <p className="text-zinc-400 text-lg leading-relaxed mb-10 max-w-2xl line-clamp-4">{randomMovie.overview}</p>
+                  <div className="flex gap-4">
+                    <Button size="lg" className="bg-white text-black hover:bg-zinc-200 rounded-2xl px-10 h-14 font-bold text-lg"><Play className="w-5 h-5 mr-2 fill-black"/> Watch Now</Button>
+                    <Button variant="outline" size="lg" onClick={fetchRecommendation} className="rounded-2xl px-10 h-14 border-white/10 hover:bg-white/5 text-lg">Next One</Button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Results Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-6 gap-y-12">
+          {movies.map((movie, idx) => (
+            <motion.div key={`${movie.id}-${idx}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: (idx % 12) * 0.05 }}>
+              <Card movie={movie} />
+            </motion.div>
+          ))}
         </div>
 
-        {/* Random Movie */}
-        {showRandomMovie && randomMovie && (
-          <div className="mb-12 bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-2xl p-6 shadow-2xl">
-            {/* Mood */}
-            <p className="text-sm text-purple-400 mb-2">
-              🎯 Mood: {randomMovie.mood}
-            </p>
-
-            {/* Main Movie */}
-            <div className="flex flex-col md:flex-row gap-6 mb-6">
-              <Card movie={randomMovie.main} size="lg" />
-
-              <div>
-                <h2 className="text-3xl font-bold mb-2">
-                  {randomMovie.main.title}
-                </h2>
-
-                <p className="text-gray-400 mb-4 line-clamp-4">
-                  {randomMovie.main.overview}
-                </p>
-
-                <div className="flex gap-4 text-sm text-gray-500 mb-4">
-                  <span>⭐ {randomMovie.main.vote_average.toFixed(1)}</span>
-                  <span>
-                    📅 {new Date(randomMovie.main.release_date).getFullYear()}
-                  </span>
-                </div>
-
-                <Button
-                  onClick={fetchSmartSurprise}
-                  className="bg-purple-600 hover:bg-purple-700"
-                >
-                  🔄 Try Another Surprise
-                </Button>
-              </div>
+        {/* Sentinel */}
+        <div ref={observerRef} className="py-24 flex flex-col items-center justify-center">
+          {isLoading ? (
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="w-10 h-10 animate-spin text-purple-600" />
+              <span className="text-zinc-500 font-medium animate-pulse tracking-widest uppercase text-[10px]">Loading Archives</span>
             </div>
-
-            {/* More Like This */}
-            <div>
-              <h3 className="text-lg font-semibold mb-3 text-gray-300">
-                🎬 More Like This
-              </h3>
-
-              <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-                {randomMovie.list.map((m, i) => (
-                  <Card key={i} movie={m} />
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex flex-wrap justify-center gap-4 mb-10">
-          <Button
-            onClick={fetchSmartSurprise}
-            disabled={isLoading}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-full px-6 py-3 transition-transform hover:scale-105"
-          >
-            <Shuffle className="w-4 h-4 mr-2" />
-            {isLoading ? "Loading..." : "Surprise Me"}
-          </Button>
-          {hasActiveFilters && (
-            <Button
-              variant="outline"
-              onClick={clearFilters}
-              className="border-gray-600 text-gray-300 hover:bg-gray-800 rounded-full px-6 py-3"
-            >
-              Clear Filters
-            </Button>
+          ) : !hasMore && (
+            <div className="h-px w-24 bg-zinc-800" />
           )}
         </div>
-
-        {/* Filter Section */}
-        <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-6 mb-10 backdrop-blur-md">
-          <div className="flex items-center gap-2 mb-4">
-            <Filter className="w-5 h-5 text-gray-400" />
-            <h2 className="text-xl font-semibold">Filters</h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { label: "Sort By", key: "sort_by", options: sortOptions },
-              {
-                label: "Language",
-                key: "with_original_language",
-                options: languages.map((l) => ({
-                  value: l.code,
-                  label: l.name,
-                })),
-              },
-              {
-                label: "Genre",
-                key: "with_genres",
-                options: genres.map((g) => ({ value: g.id, label: g.name })),
-              },
-              {
-                label: "Min Rating",
-                key: "vote_average.gte",
-                options: ratingOptions,
-              },
-            ].map(({ label, key, options }) => (
-              <div key={key}>
-                <label className="block text-sm text-gray-400 mb-2">
-                  {label}
-                </label>
-                <Select
-                  value={filters[key]}
-                  onValueChange={(v) => setFilters((f) => ({ ...f, [key]: v }))}
-                >
-                  <SelectTrigger className="bg-neutral-900 border border-neutral-800 text-white">
-                    <SelectValue placeholder={label} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {options.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Movie Grid */}
-        {isInitialLoad ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-10">
-              {movies.map((m, i) => (
-                <Card key={i} movie={m} />
-              ))}
-            </div>
-
-            {isLoading && (
-              <div className="flex justify-center py-10 text-gray-400">
-                <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading
-                more...
-              </div>
-            )}
-
-            {!hasMore && movies.length > 0 && (
-              <div className="text-center text-gray-500 py-10">
-                🎬 You’ve reached the end — {movies.length} movies loaded.
-              </div>
-            )}
-
-            {movies.length === 0 && !isLoading && (
-              <div className="text-center py-20 text-gray-400">
-                <Filter className="w-10 h-10 mx-auto mb-4" />
-                <p>No movies found. Try different filters.</p>
-                <Button
-                  onClick={clearFilters}
-                  className="mt-4 bg-purple-600 hover:bg-purple-700 text-white"
-                >
-                  Reset Filters
-                </Button>
-              </div>
-            )}
-
-            {hasMore && <div ref={observerRef} className="h-10" />}
-          </>
-        )}
       </div>
     </div>
   );

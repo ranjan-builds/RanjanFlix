@@ -21,6 +21,7 @@ const Person = () => {
   const apiKey = import.meta.env.VITE_API_KEY;
 
   const calculateAge = (birthDate, deathDate = null) => {
+    if (!birthDate) return null;
     const birthDateObj = new Date(birthDate);
     const endDate = deathDate ? new Date(deathDate) : new Date();
     let age = endDate.getFullYear() - birthDateObj.getFullYear();
@@ -34,6 +35,7 @@ const Person = () => {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
@@ -59,8 +61,16 @@ const Person = () => {
         const personData = await personRes.json();
         const combinedData = await combinedRes.json();
         
+        // --- SORTING LOGIC ADDED HERE ---
+        // We sort by vote_count to get the "Most Famous/Top Hits" first.
+        // We also filter out items without a poster to keep the UI clean.
+        const sortedCredits = (combinedData.cast || [])
+          .filter(m => m.poster_path) // Only show movies with posters
+          .sort((a, b) => b.vote_count - a.vote_count) // Sort by number of votes (fame)
+          .slice(0, 20); // Take the top 20 hits
+        
         setPerson(personData);
-        setCombined(combinedData.cast || []);
+        setCombined(sortedCredits);
         setLoading(false);
       } catch (error) {
         console.error(error);
@@ -122,7 +132,6 @@ const Person = () => {
     <div className="min-h-screen bg-gradient-to-br from-zinc-900 via-black to-zinc-900">
       {/* Header Section */}
       <div className="relative">
-        {/* Back Button */}
         <div className="absolute top-4 left-4 z-10">
           <button
             onClick={goBack}
@@ -134,11 +143,8 @@ const Person = () => {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
-        {/* Person Profile Section */}
         <div className="grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-8 mb-12">
-          {/* Profile Image */}
           <div className="flex flex-col items-center">
             <div className="w-full max-w-sm relative group">
               {person.profile_path && !imageError ? (
@@ -156,17 +162,13 @@ const Person = () => {
             </div>
           </div>
 
-          {/* Person Details */}
           <div className="flex flex-col gap-6">
-            {/* Name and Basic Info */}
             <div className="space-y-4">
               <h1 className="text-4xl lg:text-5xl font-bold text-white mb-2">
                 {person.name}
               </h1>
               
-              {/* Personal Information Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                {/* Birth Information */}
                 <div className="bg-zinc-800/50 rounded-xl p-4 border border-zinc-700/50">
                   <div className="flex items-center gap-3 text-blue-400 mb-2">
                     <MdCalendarToday className="text-lg" />
@@ -188,7 +190,6 @@ const Person = () => {
                   )}
                 </div>
 
-                {/* Death Information (if applicable) */}
                 {person.deathday && (
                   <div className="bg-zinc-800/50 rounded-xl p-4 border border-zinc-700/50">
                     <div className="flex items-center gap-3 text-red-400 mb-2">
@@ -204,7 +205,6 @@ const Person = () => {
                   </div>
                 )}
 
-                {/* Known For */}
                 {person.known_for_department && (
                   <div className="bg-zinc-800/50 rounded-xl p-4 border border-zinc-700/50">
                     <div className="flex items-center gap-3 text-green-400 mb-2">
@@ -217,7 +217,6 @@ const Person = () => {
               </div>
             </div>
 
-            {/* Biography */}
             <div className="space-y-4">
               <h2 className="text-2xl font-bold text-white">Biography</h2>
               <div className="bg-zinc-800/30 rounded-xl p-6 border border-zinc-700/30">
@@ -237,7 +236,6 @@ const Person = () => {
           </div>
         </div>
 
-        {/* Known For Section */}
         {combined.length > 0 && (
           <div className="mb-12">
             <div className="mb-6">
@@ -248,7 +246,6 @@ const Person = () => {
         )}
       </div>
 
-      {/* Custom Scrollbar Styles */}
       <style jsx>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;

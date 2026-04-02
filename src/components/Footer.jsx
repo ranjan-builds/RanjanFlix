@@ -30,43 +30,12 @@ const Footer = () => {
           </div>
 
           {/* Center Section - Links */}
-          <div className="flex flex-wrap justify-center gap-6 text-sm">
-            <a
-              href="/"
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              Home
-            </a>
-            <a
-              href="/movies"
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              Movies
-            </a>
-            <a
-              href="/watchlist"
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              Watchlist
-            </a>
-            <a
-              href="/privacy"
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              Privacy
-            </a>
-            <a
-              href="/terms"
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              Terms
-            </a>
-          </div>
+         
 
           {/* Right Section - Social Links */}
           <div className="flex items-center space-x-4">
             <a
-              href="https://github.com/RanjanWorks"
+              href="https://github.com/ranjan-builds"
               target="_blank"
               rel="noopener noreferrer"
               className="text-gray-400 hover:text-white transition-colors"

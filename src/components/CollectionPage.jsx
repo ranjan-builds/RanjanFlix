@@ -1,20 +1,25 @@
-import { useEffect, useState, useCallback } from "react";
-import { useParams, NavLink } from "react-router-dom";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { useParams, NavLink, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import {
+  ChevronLeft,
+  Play,
+  Clock,
+  Calendar,
+  Star,
+  Film,
+  ListOrdered,
+  AlertTriangle,
+  Loader2,
+  Info,
+} from "lucide-react";
+
+// UI Components
 import Card from "./Card";
 import Loader from "./Loader";
-import MovieCategoryName from "./MovieCategoryName";
-import {
-  GoAlert,
-  GoArrowLeft,
-  GoPlay,
-  GoClock,
-  GoCalendar,
-  GoDeviceCameraVideo,
-  GoStar,
-  GoChevronRight,
-  GoListOrdered,
-} from "react-icons/go";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Drawer,
   DrawerClose,
@@ -23,405 +28,323 @@ import {
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
-  DrawerTrigger,
 } from "@/components/ui/drawer";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 
-export default function CollectionPage() {
+const CollectionPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const apiKey = import.meta.env.VITE_API_KEY;
+
   const [collection, setCollection] = useState(null);
-  const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedTrailer, setSelectedTrailer] = useState(null);
   const [trailerLoading, setTrailerLoading] = useState(false);
-  const apiKey = import.meta.env.VITE_API_KEY;
+
+  // --- Data Fetching ---
+  const fetchCollection = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await fetch(
+        `https://api.themoviedb.org/3/collection/${id}?api_key=${apiKey}`,
+      );
+
+      if (!res.ok) throw new Error("Franchise data unavailable.");
+      const data = await res.json();
+
+      // Sort movies by release date immediately
+      if (data.parts) {
+        data.parts.sort(
+          (a, b) =>
+            new Date(a.release_date || "9999") -
+            new Date(b.release_date || "9999"),
+        );
+      }
+
+      setCollection(data);
+    } catch (err) {
+      setError(err.message);
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [id, apiKey]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [id]);
+    fetchCollection();
+  }, [fetchCollection]);
 
-  const fetchWithErrorHandling = useCallback(async (url) => {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP error: ${response.status}`);
-    }
-    return await response.json();
-  }, []);
-
-  const fetchMovieTrailer = useCallback(
-    async (movieId) => {
-      try {
-        const response = await fetch(
-          `https://api.themoviedb.org/3/movie/${movieId}/videos?api_key=${apiKey}`
-        );
-        const data = await response.json();
-
-        const trailers =
-          data.results?.filter(
-            (video) => video.type === "Trailer" && video.site === "YouTube"
-          ) || [];
-
-        if (trailers.length > 0) {
-          return `https://www.youtube.com/embed/${trailers[0].key}`;
-        }
-        return null;
-      } catch (error) {
-        console.error("Error fetching trailer:", error);
-        return null;
-      }
-    },
-    [apiKey]
-  );
-
+  // --- Trailer Logic ---
   const handlePlayTrailer = async (movie) => {
     setIsDrawerOpen(true);
     setTrailerLoading(true);
-    setSelectedTrailer(null);
-
-    const trailerUrl = await fetchMovieTrailer(movie.id);
-    setSelectedTrailer(trailerUrl);
-    setTrailerLoading(false);
+    try {
+      const res = await fetch(
+        `https://api.themoviedb.org/3/movie/${movie.id}/videos?api_key=${apiKey}`,
+      );
+      const data = await res.json();
+      const trailer = data.results?.find(
+        (v) => v.type === "Trailer" && v.site === "YouTube",
+      );
+      setSelectedTrailer(
+        trailer ? `https://www.youtube.com/embed/${trailer.key}` : null,
+      );
+    } catch (e) {
+      setSelectedTrailer(null);
+    } finally {
+      setTrailerLoading(false);
+    }
   };
 
-  useEffect(() => {
-    const fetchCollectionData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const urls = [
-          `https://api.themoviedb.org/3/collection/${id}?api_key=${apiKey}`,
-        ];
-
-        const [collectionRes] = await Promise.all(
-          urls.map(fetchWithErrorHandling)
-        );
-
-        if (collectionRes.status_code === 34) {
-          throw new Error("Collection not found");
-        }
-
-        setCollection(collectionRes);
-        setMovies(collectionRes.parts || []);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching collection data:", error);
-        toast.error(
-          error.message || "An error occurred while fetching collection data"
-        );
-        setError(error.message);
-        setLoading(false);
-      }
-    };
-
-    fetchCollectionData();
-  }, [id, apiKey, fetchWithErrorHandling]);
-
-  const sortMoviesByReleaseDate = useCallback((movies) => {
-    return movies.sort((a, b) => {
-      const dateA = new Date(a.release_date || "9999-12-31");
-      const dateB = new Date(b.release_date || "9999-12-31");
-      return dateA - dateB;
-    });
-  }, []);
-
-  const getTotalRuntime = useCallback(() => {
-    return movies.reduce((total, movie) => total + (movie.runtime || 0), 0);
-  }, [movies]);
-
-  const convertMinutesToTime = useCallback((minutes) => {
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    return `${hours > 0 ? `${hours}h` : ""} ${
-      remainingMinutes > 0 ? `${remainingMinutes}m` : ""
-    }`.trim();
-  }, []);
-
-  const getReleaseYears = useCallback(() => {
-    if (movies.length === 0) return "";
-
-    const sortedMovies = sortMoviesByReleaseDate([...movies]);
-    const firstYear = sortedMovies[0].release_date?.split("-")[0] || "TBA";
+  // --- Calculations (Memoized) ---
+  const stats = useMemo(() => {
+    if (!collection?.parts) return null;
+    const movies = collection.parts;
+    const totalRating = movies.reduce(
+      (sum, m) => sum + (m.vote_average || 0),
+      0,
+    );
+    const firstYear = movies[0]?.release_date?.split("-")[0] || "TBA";
     const lastYear =
-      sortedMovies[sortedMovies.length - 1].release_date?.split("-")[0] ||
-      "TBA";
+      movies[movies.length - 1]?.release_date?.split("-")[0] || "TBA";
 
-    return firstYear === lastYear ? firstYear : `${firstYear} - ${lastYear}`;
-  }, [movies, sortMoviesByReleaseDate]);
+    return {
+      count: movies.length,
+      avg: (totalRating / movies.length).toFixed(1),
+      timeline:
+        firstYear === lastYear ? firstYear : `${firstYear} — ${lastYear}`,
+    };
+  }, [collection]);
 
-  const getAverageRating = useCallback(() => {
-    if (movies.length === 0) return 0;
-    const total = movies.reduce(
-      (sum, movie) => sum + (movie.vote_average || 0),
-      0
-    );
-    return (total / movies.length).toFixed(1);
-  }, [movies]);
+  if (loading) return <Loader loading={true} size={40} />;
 
-  if (loading) return <Loader loading={true} size={20} />;
-
-  if (error)
+  if (error || !collection)
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
-        <div className="text-center max-w-md mx-auto px-4">
-          <div className="border border-red-800 rounded-xl p-6 bg-red-950/20">
-            <GoAlert className="text-red-500 text-3xl mx-auto mb-3" />
-            <h2 className="text-xl font-semibold text-red-400 mb-2">
-              Collection Not Found
-            </h2>
-            <p className="text-red-400">{error}</p>
-          </div>
-          <NavLink
-            to="/"
-            className="inline-flex items-center gap-2 mt-6 px-6 py-3 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition-colors"
-          >
-            <GoArrowLeft />
-            Return to Home
-          </NavLink>
-        </div>
+      <div className="h-screen flex flex-col items-center justify-center bg-[#050505] text-zinc-500 gap-4">
+        <AlertTriangle size={48} className="text-red-500/50" />
+        <p className="text-xl font-medium">{error || "Collection not found"}</p>
+        <Button
+          onClick={() => navigate("/")}
+          variant="outline"
+          className="rounded-full border-zinc-800"
+        >
+          <ChevronLeft size={16} className="mr-2" /> Back to Safety
+        </Button>
       </div>
     );
-
-  if (!collection)
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
-        <div className="text-center">
-          <p className="text-xl text-gray-400 mb-4">Collection not found</p>
-          <NavLink
-            to="/"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition-colors"
-          >
-            <GoArrowLeft />
-            Back to Home
-          </NavLink>
-        </div>
-      </div>
-    );
-
-  const sortedMovies = sortMoviesByReleaseDate([...movies]);
-  const totalRuntime = getTotalRuntime();
-  const averageRating = getAverageRating();
 
   return (
-    <div className="min-h-screen bg-black">
-      {/* Header Section - Full Dark */}
-      <div className="border-b border-gray-800 bg-gray-900/50">
-        <div className="container mx-auto px-4 py-8">
-          {/* Back Button */}
-          <NavLink
-            to="/"
-            className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 hover:bg-gray-700 transition-colors text-gray-300"
-          >
-            <GoArrowLeft />
-            Back to Home
-          </NavLink>
+    <div className="min-h-screen bg-[#050505] text-white selection:bg-purple-500/30">
+      {/* Immersive Hero Header */}
+      <section className="relative w-full overflow-hidden pt-20 pb-12 lg:pt-32 lg:pb-24">
+        {/* Dynamic Background Blur */}
+        <div
+          className="absolute inset-0 z-0 opacity-30 scale-110 blur-[100px]"
+          style={{
+            backgroundImage: `url(https://image.tmdb.org/t/p/w780${collection.backdrop_path})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        />
 
-          <div className="grid grid-cols-1 lg:grid-cols-[280px_auto] gap-8 items-start">
-            {/* Poster */}
-            <div className="flex justify-center lg:justify-start">
-              <div className="relative">
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-12 items-center">
+            {/* Poster with Shadow */}
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="hidden lg:block group"
+            >
+              <div className="relative rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/10 group-hover:border-purple-500/30 transition-colors">
                 <img
-                  className="w-64 h-96 rounded-xl shadow-lg object-cover border border-gray-800"
-                  src={`https://image.tmdb.org/t/p/w500/${collection.poster_path}`}
+                  src={`https://image.tmdb.org/t/p/w500${collection.poster_path}`}
                   alt={collection.name}
-                  onError={(e) => {
-                    e.target.src = "/placeholder-poster.jpg";
-                  }}
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
               </div>
-            </div>
+            </motion.div>
 
-            {/* Collection Info */}
-            <div className="flex flex-col gap-6">
-              <div>
-                <h1 className="text-3xl lg:text-4xl font-bold text-white mb-4">
+            {/* Collection Identity */}
+            <div className="flex flex-col gap-6 text-center lg:text-left">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Badge
+                  variant="outline"
+                  className="mb-4 border-purple-500/30 text-purple-400 bg-purple-500/5 px-4 py-1 rounded-full"
+                >
+                  <Film size={12} className="mr-2" /> Cinematic Universe
+                </Badge>
+                <h1 className="text-5xl md:text-7xl font-black tracking-tighter bg-gradient-to-b from-white to-zinc-500 bg-clip-text text-transparent uppercase italic">
                   {collection.name}
                 </h1>
-                {collection.overview && (
-                  <p className="text-lg text-gray-300 leading-relaxed max-w-3xl">
-                    {collection.overview}
-                  </p>
-                )}
-              </div>
+                <p className="text-zinc-400 text-lg leading-relaxed max-w-2xl mt-4 mx-auto lg:mx-0">
+                  {collection.overview}
+                </p>
+              </motion.div>
 
-              {/* Collection Stats */}
-              <div className="flex flex-wrap gap-3">
-                <Badge variant="outline" className="px-3 py-1 border-gray-700 text-gray-300">
-                  <GoDeviceCameraVideo className="mr-2" />
-                  {movies.length} Movies
-                </Badge>
-                {totalRuntime > 0 && (
-                  <Badge variant="outline" className="px-3 py-1 border-gray-700 text-gray-300">
-                    <GoClock className="mr-2" />
-                    {convertMinutesToTime(totalRuntime)}
-                  </Badge>
-                )}
-                <Badge variant="outline" className="px-3 py-1 border-gray-700 text-gray-300">
-                  <GoCalendar className="mr-2" />
-                  {getReleaseYears()}
-                </Badge>
-                {averageRating > 0 && (
-                  <Badge variant="outline" className="px-3 py-1 border-gray-700 text-gray-300">
-                    <GoStar className="mr-2" />
-                    {averageRating} Avg
-                  </Badge>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-3">
-                <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-                  <DrawerTrigger asChild>
-                    <Button
-                      className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700"
-                      onClick={() => handlePlayTrailer(sortedMovies[0])}
-                    >
-                      <GoPlay className="text-lg" />
-                      Play First Movie Trailer
-                    </Button>
-                  </DrawerTrigger>
-                  <DrawerContent className="max-w-4xl mx-auto bg-gray-900 border-gray-800">
-                    <DrawerHeader>
-                      <DrawerTitle className="flex items-center gap-2 text-white">
-                        <GoPlay className="text-blue-500" />
-                        Watch Trailer
-                      </DrawerTitle>
-                      <DrawerDescription className="text-gray-400">
-                        {sortedMovies[0]?.title}
-                      </DrawerDescription>
-                    </DrawerHeader>
-                    <div className="px-6 pb-6">
-                      {trailerLoading ? (
-                        <div className="flex items-center justify-center h-48 bg-gray-800 rounded-lg">
-                          <Loader loading={true} size={16} />
-                          <span className="ml-3 text-gray-300">Loading trailer...</span>
-                        </div>
-                      ) : selectedTrailer ? (
-                        <div className="relative aspect-video rounded-lg overflow-hidden">
-                          <iframe
-                            width="100%"
-                            height="100%"
-                            src={`${selectedTrailer}?autoplay=1&rel=0`}
-                            title="Movie Trailer"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                            className="absolute inset-0"
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center h-48 bg-gray-800 rounded-lg gap-3">
-                          <GoAlert className="text-3xl text-gray-500" />
-                          <p className="text-gray-400">Trailer not available</p>
-                        </div>
-                      )}
-                    </div>
-                    <DrawerFooter>
-                      <DrawerClose asChild>
-                        <Button variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800">
-                          Close
-                        </Button>
-                      </DrawerClose>
-                    </DrawerFooter>
-                  </DrawerContent>
-                </Drawer>
+              <div className="flex flex-wrap justify-center lg:justify-start gap-3">
+                <Button
+                  onClick={() => handlePlayTrailer(collection.parts[0])}
+                  className="bg-white text-black hover:bg-zinc-200 rounded-full px-8 h-12 font-bold shadow-xl transition-transform hover:scale-105 active:scale-95"
+                >
+                  <Play size={18} className="mr-2 fill-current" /> Watch First
+                  Trailer
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(-1)}
+                  className="rounded-full border-zinc-800 bg-zinc-900/50 backdrop-blur-md h-12 px-6"
+                >
+                  <ChevronLeft size={18} className="mr-2" /> Go Back
+                </Button>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Movies Section - Full Dark */}
-      <div className="container mx-auto px-4 py-12">
-        {/* Section Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-              <GoListOrdered className="text-blue-500" />
-              Movies in Collection
+      {/* Franchise Dashboard */}
+      <main className="container mx-auto px-6 py-12">
+        {/* Premium Stat Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16">
+          <StatBox
+            icon={<ListOrdered className="text-blue-400" />}
+            label="Total Titles"
+            value={stats.count}
+          />
+          <StatBox
+            icon={<Star className="text-yellow-500" />}
+            label="Franchise Avg"
+            value={stats.avg}
+          />
+          <StatBox
+            icon={<Calendar className="text-purple-400" />}
+            label="Timeline"
+            value={stats.timeline}
+          />
+          <StatBox
+            icon={<Info className="text-zinc-400" />}
+            label="Status"
+            value="Complete"
+          />
+        </div>
+
+        {/* The Grid Section */}
+        <div className="space-y-10">
+          <div className="flex items-center justify-between border-b border-zinc-900 pb-6">
+            <h2 className="text-3xl font-black tracking-tight uppercase italic flex items-center gap-3">
+              <Film className="text-purple-600" /> Chronological Order
             </h2>
-            <p className="text-gray-400 mt-1">
-              {movies.length} movies sorted by release date
+            <p className="text-zinc-600 text-sm hidden sm:block">
+              Explore the journey from start to finish
             </p>
           </div>
-          <Badge variant="secondary" className="text-sm bg-gray-800 text-gray-300 border-gray-700">
-            Chronological Order
-          </Badge>
+
+          <motion.div
+            layout
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6"
+          >
+            <AnimatePresence>
+              {collection.parts.map((movie, idx) => (
+                <motion.div
+                  key={movie.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                >
+                  <Card movie={movie} />
+                  <p className="mt-3 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 text-center">
+                    Phase {idx + 1}
+                  </p>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
         </div>
+      </main>
 
-        {/* Stats Grid - Full Dark */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-950 rounded-lg">
-                <GoDeviceCameraVideo className="text-blue-400" />
+      {/* Trailer Drawer - Polished */}
+      <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+        <DrawerContent className="bg-zinc-950 border-zinc-800 h-[85vh]">
+          <div className="mx-auto w-full max-w-5xl h-full flex flex-col p-6">
+            <DrawerHeader className="px-0">
+              <div className="flex justify-between items-center">
+                <div>
+                  <DrawerTitle className="text-white text-2xl font-black">
+                    Universe Preview
+                  </DrawerTitle>
+                  <DrawerDescription className="text-zinc-500">
+                    Official Franchise Trailer
+                  </DrawerDescription>
+                </div>
+                <DrawerClose asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full bg-zinc-900 border border-zinc-800"
+                  >
+                    <ChevronLeft className="rotate-90" />
+                  </Button>
+                </DrawerClose>
               </div>
-              <div>
-                <p className="text-lg font-semibold text-white">
-                  {movies.length}
-                </p>
-                <p className="text-sm text-gray-400">Movies</p>
+            </DrawerHeader>
+
+            <div className="flex-1 flex items-center justify-center py-6">
+              <div className="w-full aspect-video rounded-3xl overflow-hidden bg-black shadow-2xl border border-white/5 relative">
+                {trailerLoading ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+                    <Loader2
+                      className="animate-spin text-purple-600"
+                      size={32}
+                    />
+                    <span className="text-zinc-500 font-mono text-xs uppercase tracking-widest">
+                      Opening Portal...
+                    </span>
+                  </div>
+                ) : selectedTrailer ? (
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    src={`${selectedTrailer}?autoplay=1`}
+                    allow="autoplay; encrypted-media"
+                    allowFullScreen
+                  />
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center gap-3 opacity-30">
+                    <AlertTriangle size={48} />
+                    <p>Trailer link corrupted or missing.</p>
+                  </div>
+                )}
               </div>
             </div>
+            <p className="text-center text-zinc-700 text-[10px] font-bold uppercase tracking-[0.4em] py-4">
+              RFLIX Cinematic Archive
+            </p>
           </div>
-
-          <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-950 rounded-lg">
-                <GoClock className="text-green-400" />
-              </div>
-              <div>
-                <p className="text-lg font-semibold text-white">
-                  {convertMinutesToTime(totalRuntime)}
-                </p>
-                <p className="text-sm text-gray-400">Runtime</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-950 rounded-lg">
-                <GoCalendar className="text-purple-400" />
-              </div>
-              <div>
-                <p className="text-lg font-semibold text-white">
-                  {getReleaseYears()}
-                </p>
-                <p className="text-sm text-gray-400">Timeline</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-950 rounded-lg">
-                <GoStar className="text-yellow-400" />
-              </div>
-              <div>
-                <p className="text-lg font-semibold text-white">
-                  {averageRating}
-                </p>
-                <p className="text-sm text-gray-400">Avg Rating</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Movies Grid */}
-        <div className="px-1">
-          {sortedMovies.length > 0 && (
-            <MovieCategoryName title={"Movies"} />
-          )}
-          <div className="grid grid-cols-3 lg:grid-cols-5 gap-2">
-            {sortedMovies.map((movie) => (
-              <Card key={movie.id} movie={movie} />
-            ))}
-          </div>
-        </div>
-      </div>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
-}
+};
+
+// --- Sub-component: StatBox ---
+const StatBox = ({ icon, label, value }) => (
+  <div className="bg-zinc-900/40 border border-white/5 backdrop-blur-xl p-5 rounded-2xl flex items-center gap-4 transition-all hover:bg-zinc-900/60 hover:border-purple-500/20 group">
+    <div className="p-3 bg-black rounded-xl border border-white/5 group-hover:scale-110 transition-transform">
+      {icon}
+    </div>
+    <div>
+      <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">
+        {label}
+      </p>
+      <p className="text-xl font-bold text-white tracking-tight">{value}</p>
+    </div>
+  </div>
+);
+
+export default CollectionPage;
