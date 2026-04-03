@@ -18,22 +18,17 @@ const Playlist = () => {
   const [sortBy, setSortBy] = useState("added");
   const navigate = useNavigate();
 
-  // API Configuration (Move this to .env in a real project)
   const API_KEY = import.meta.env.VITE_API_KEY || "4c1eef5a8d388386187a3426bc2345be";
 
   useEffect(() => {
     const fetchMovies = async () => {
       const playlist = JSON.parse(localStorage.getItem("playlist")) || [];
-
       if (playlist.length === 0) {
         setLoading(false);
         return;
       }
-
       try {
         setLoading(true);
-        // Using Promise.all is good, but TMDB doesn't have a bulk fetch. 
-        // This is the cleanest way for small/medium playlists.
         const moviePromises = playlist.map((id) =>
           fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${API_KEY}`)
             .then((res) => {
@@ -41,7 +36,6 @@ const Playlist = () => {
               return res.json();
             })
         );
-
         const movieData = await Promise.all(moviePromises);
         setMovies(movieData.filter(m => m !== null));
       } catch (error) {
@@ -50,18 +44,16 @@ const Playlist = () => {
         setLoading(false);
       }
     };
-
     fetchMovies();
   }, [API_KEY]);
 
-  // Performance: Only re-sort if movies or sortBy change
   const sortedMovies = useMemo(() => {
     const sorted = [...movies];
     switch (sortBy) {
       case "title": return sorted.sort((a, b) => a.title.localeCompare(b.title));
       case "rating": return sorted.sort((a, b) => b.vote_average - a.vote_average);
       case "year": return sorted.sort((a, b) => new Date(b.release_date) - new Date(a.release_date));
-      default: return sorted; // 'added' is default order from localStorage
+      default: return sorted;
     }
   }, [movies, sortBy]);
 
@@ -96,7 +88,7 @@ const Playlist = () => {
       <motion.p 
         initial={{ opacity: 0 }} 
         animate={{ opacity: 1 }} 
-        className="text-zinc-500 mt-6 font-medium tracking-wide"
+        className="text-zinc-500 mt-6 font-medium tracking-wide text-sm md:text-base"
       >
         RETRIEVING YOUR COLLECTION...
       </motion.p>
@@ -104,30 +96,30 @@ const Playlist = () => {
   );
 
   return (
-    <div className="min-h-screen bg-[#050505] text-zinc-100 pb-20">
-      {/* Background Glow */}
+    <div className="min-h-screen bg-[#050505] text-zinc-100 pb-20 overflow-x-hidden">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-purple-900/10 blur-[120px] pointer-events-none" />
 
-      <div className="container mx-auto px-6 pt-16 relative z-10">
-        {/* Header Section */}
-        <header className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3 text-purple-500 mb-1">
-              <Film className="w-5 h-5" />
-              <span className="text-xs font-bold tracking-[0.2em] uppercase">Library</span>
+      <div className="max-w-7xl mx-auto px-4 md:px-6 pt-12 md:pt-16 relative z-10">
+        
+        {/* FIXED HEADER: Responsive alignment */}
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 md:mb-12 gap-6 w-full">
+          <div className="space-y-1 md:space-y-2">
+            <div className="flex items-center gap-2 text-purple-500 mb-1">
+              <Film className="w-4 h-4 md:w-5 md:h-5" />
+              <span className="text-[10px] md:text-xs font-bold tracking-[0.2em] uppercase">Library</span>
             </div>
-            <h1 className="text-5xl md:text-7xl font-black tracking-tighter">
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tighter leading-none">
               Watchlist<span className="text-purple-600">.</span>
             </h1>
           </div>
 
           {movies.length > 0 && (
-            <div className="flex items-center gap-3">
-              <div className="relative">
+            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+              <div className="relative flex-1 md:flex-none">
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="appearance-none bg-zinc-900 border border-zinc-800 text-sm rounded-full pl-5 pr-10 py-2.5 focus:ring-2 focus:ring-purple-600 outline-none transition cursor-pointer hover:bg-zinc-800"
+                  className="w-full appearance-none bg-zinc-900 border border-zinc-800 text-xs md:text-sm rounded-full pl-4 md:pl-5 pr-10 py-2.5 focus:ring-2 focus:ring-purple-600 outline-none transition cursor-pointer hover:bg-zinc-800"
                 >
                   <option value="added">Recently Added</option>
                   <option value="title">Alphabetical</option>
@@ -139,7 +131,7 @@ const Playlist = () => {
               <Button
                 variant="ghost"
                 onClick={clearAllMovies}
-                className="rounded-full text-zinc-500 hover:text-red-400 hover:bg-red-950/20"
+                className="rounded-full text-zinc-500 hover:text-red-400 hover:bg-red-950/20 text-xs md:text-sm h-10 px-4"
               >
                 <Trash2 className="w-4 h-4 mr-2" /> Clear
               </Button>
@@ -149,45 +141,45 @@ const Playlist = () => {
 
         {movies.length > 0 ? (
           <>
-            {/* Quick Stats Dashboard */}
+            {/* Quick Stats: Responsive Grid */}
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-10 md:mb-12"
             >
               <StatItem 
                 icon={<Film className="text-purple-400" />} 
                 label="Total Movies" 
                 value={stats.count} 
-                sub="In your collection"
+                sub="Titles"
               />
               <StatItem 
                 icon={<Clock className="text-blue-400" />} 
                 label="Watch Time" 
                 value={`${stats.hours}h ${stats.minutes}m`} 
-                sub="Total runtime"
+                sub="Runtime"
               />
-              <div className="lg:col-span-2 bg-gradient-to-br from-zinc-900 to-zinc-950 border border-zinc-800 p-5 rounded-2xl flex items-center justify-between">
-                <div>
-                  <p className="text-zinc-400 text-sm font-medium">Continue Watching</p>
-                  <p className="text-zinc-500 text-xs mt-1">Pick up where you left off</p>
+              <div className="lg:col-span-2 bg-gradient-to-br from-zinc-900 to-zinc-950 border border-zinc-800 p-4 md:p-5 rounded-2xl flex flex-row items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-zinc-400 text-xs md:text-sm font-medium truncate">Continue Watching</p>
+                  <p className="text-zinc-500 text-[10px] md:text-xs mt-0.5">Pick up where you left off</p>
                 </div>
-                <Button onClick={() => navigate("/discover")} className="bg-purple-600 hover:bg-purple-700 rounded-xl">
-                  <Play className="w-4 h-4 mr-2 fill-current" /> Surprise Me
+                <Button onClick={() => navigate("/discover")} className="bg-purple-600 hover:bg-purple-700 rounded-xl text-xs md:text-sm h-9 md:h-11 px-3 md:px-5 shrink-0">
+                  <Play className="w-3 h-3 md:w-4 md:h-4 mr-2 fill-current" /> Surprise Me
                 </Button>
               </div>
             </motion.div>
 
-            {/* Movie Grid */}
-            <div className="space-y-6">
+            {/* Movie Grid: Mobile optimized spacing */}
+            <div className="space-y-4 md:space-y-6">
               <div className="flex items-center justify-between">
                 <MovieCategoryName title="Curated Selection" />
-                <LayoutGrid className="w-5 h-5 text-zinc-700" />
+                <LayoutGrid className="w-4 h-4 md:w-5 md:h-5 text-zinc-700" />
               </div>
               
               <motion.div 
                 layout
-                className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6"
+                className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-6"
               >
                 <AnimatePresence mode="popLayout">
                   {sortedMovies.map((movie) => (
@@ -211,14 +203,13 @@ const Playlist = () => {
               </motion.div>
             </div>
 
-            {/* Footer Prompt */}
-            <div className="mt-20 py-10 border-t border-zinc-900 flex flex-col items-center text-center">
-              <div className="flex items-center gap-2 text-zinc-500 text-xs uppercase tracking-widest mb-4">
-                <Info className="w-4 h-4" /> Cloud sync coming soon
+            <div className="mt-16 md:mt-20 py-10 border-t border-zinc-900 flex flex-col items-center text-center">
+              <div className="flex items-center gap-2 text-zinc-500 text-[10px] md:text-xs uppercase tracking-widest mb-4">
+                <Info className="w-3 h-3 md:w-4 md:h-4" /> Cloud sync coming soon
               </div>
               <Button 
                 variant="link" 
-                className="text-zinc-400 hover:text-purple-400"
+                className="text-zinc-400 hover:text-purple-400 text-sm"
                 onClick={() => navigate("/")}
               >
                 <Plus className="w-4 h-4 mr-2" /> Add more to your collection
@@ -233,16 +224,15 @@ const Playlist = () => {
   );
 };
 
-// Helper Sub-components
 const StatItem = ({ icon, label, value, sub }) => (
-  <div className="bg-zinc-900/50 border border-zinc-800 p-5 rounded-2xl backdrop-blur-sm">
-    <div className="flex items-center gap-3 mb-3">
-      <div className="p-2 bg-zinc-950 rounded-lg border border-zinc-800">{icon}</div>
-      <span className="text-zinc-400 text-sm font-medium">{label}</span>
+  <div className="bg-zinc-900/50 border border-zinc-800 p-4 md:p-5 rounded-2xl backdrop-blur-sm">
+    <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-3">
+      <div className="p-1.5 md:p-2 bg-zinc-950 rounded-lg border border-zinc-800">{icon}</div>
+      <span className="text-zinc-400 text-[11px] md:text-sm font-medium">{label}</span>
     </div>
     <div className="flex items-baseline gap-2">
-      <h4 className="text-2xl font-bold text-white">{value}</h4>
-      <span className="text-[10px] uppercase text-zinc-600 font-bold tracking-wider">{sub}</span>
+      <h4 className="text-xl md:text-2xl font-bold text-white leading-none">{value}</h4>
+      <span className="text-[9px] md:text-[10px] uppercase text-zinc-600 font-bold tracking-wider">{sub}</span>
     </div>
   </div>
 );
@@ -251,29 +241,29 @@ const EmptyState = ({ navigate }) => (
   <motion.div 
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
-    className="flex flex-col items-center justify-center py-32 text-center"
+    className="flex flex-col items-center justify-center py-20 md:py-32 text-center px-4"
   >
-    <div className="relative mb-8">
+    <div className="relative mb-6 md:mb-8">
       <div className="absolute inset-0 bg-purple-600/20 blur-3xl rounded-full" />
-      <div className="relative w-24 h-24 bg-zinc-900 rounded-[2.5rem] border border-zinc-800 flex items-center justify-center">
-        <Film className="w-10 h-10 text-zinc-700" />
+      <div className="relative w-20 h-20 md:w-24 md:h-24 bg-zinc-900 rounded-[2rem] md:rounded-[2.5rem] border border-zinc-800 flex items-center justify-center">
+        <Film className="w-8 h-8 md:w-10 md:h-10 text-zinc-700" />
       </div>
     </div>
-    <h2 className="text-3xl font-bold text-white mb-3">Your library is empty</h2>
-    <p className="text-zinc-500 max-w-sm mb-10 text-lg">
+    <h2 className="text-2xl md:text-3xl font-bold text-white mb-2 md:mb-3">Your library is empty</h2>
+    <p className="text-zinc-500 max-w-sm mb-8 md:mb-10 text-sm md:text-lg">
       There are millions of stories waiting to be discovered. Start building your collection.
     </p>
-    <div className="flex flex-col sm:flex-row gap-4">
+    <div className="flex flex-col sm:flex-row gap-3 md:gap-4 w-full sm:w-auto">
       <Button 
         onClick={() => navigate("/discover")} 
-        className="bg-purple-600 hover:bg-purple-700 h-12 px-8 rounded-2xl font-bold transition-transform hover:scale-105"
+        className="bg-purple-600 hover:bg-purple-700 h-11 md:h-12 px-8 rounded-2xl font-bold transition-transform hover:scale-105"
       >
         <Plus className="w-5 h-5 mr-2" /> Discover Movies
       </Button>
       <Button 
         variant="outline" 
         onClick={() => navigate("/")} 
-        className="h-12 px-8 rounded-2xl border-zinc-800 text-zinc-400 hover:bg-zinc-900"
+        className="h-11 md:h-12 px-8 rounded-2xl border-zinc-800 text-zinc-400 hover:bg-zinc-900"
       >
         Go to Home
       </Button>
