@@ -17,7 +17,7 @@ const Footer = () => {
           {/* Left Section - Brand & Info */}
           <div className="flex flex-col items-center md:items-start space-y-2">
             <div className="flex items-center space-x-2">
-              <span className="text-white font-semibold">RanjanFlix</span>
+              <span className="text-white font-semibold">Ranjan Kashyap</span>
               <span className="text-gray-400">•</span>
               <span className="text-gray-400 text-sm">Developer</span>
             </div>

@@ -150,7 +150,7 @@ export default function MovieCarousel() {
           <p className="text-red-500 text-center">{error}</p>
         </div>
       ) : (
-        <div className="container mx-auto px-4 ">
+        <div className="  px-4 ">
           
           {Object.entries(movies).map(([key, movieList]) => (
             <div className="pb-4 " key={key}>

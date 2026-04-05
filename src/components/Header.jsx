@@ -7,7 +7,7 @@ import logo from "../assets/logoflix.svg";
 const Header = () => {
   return (
     <header className="fixed top-0 left-0 w-full z-50 backdrop-blur-md bg-black/40 border-b border-zinc-800">
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-10 h-[60px]">
+      <div className=" mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-10 h-[60px]">
         
         {/* Logo */}
         <NavLink to="/" className="flex items-center gap-2 group">
